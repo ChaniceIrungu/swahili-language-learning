@@ -79,18 +79,34 @@ gameScene.create = function () {
       item.setInteractive();
 
       //create tween - resize tween
-
       item.resizeTween = this.tweens.add({
         targets: item,
         scaleX: 1.5,
         scaleY: 1.5,
-        duration: 1000,
+        duration: 300,
+        paused: true, //gives control on when tween will begin
+        yoyo: true, //return to original size
+        ease: "Quad.easeInOut",
+      });
+
+      //Transparency Tween when hovering
+      item.alphaTween = this.tweens.add({
+        targets: item,
+        alpha: 0.7,
+        duration: 200,
         paused: true, //gives control on when tween will begin
         yoyo: true, //return to original size
       });
 
+      //listen to the pointerdown event
       item.on("pointerdown", function (pointer) {
         item.resizeTween.restart();
+      });
+
+      // listen to pointerover event to let user know clicking should happen
+
+      item.on("pointerover", function (pointer) {
+        item.alphaTween.restart();
       });
     },
     this
