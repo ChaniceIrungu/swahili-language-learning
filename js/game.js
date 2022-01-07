@@ -2,7 +2,52 @@
 let gameScene = new Phaser.Scene("Game");
 
 // some parameters for our scene
-gameScene.init = function () {};
+gameScene.init = function () {
+  //word database
+  this.words = [
+    {
+      key: "building",
+      setXY: {
+        x: 100,
+        y: 240,
+      },
+      spanish: "edificio",
+    },
+    {
+      key: "house",
+      setScale: {
+        x: 0.8,
+        y: 0.8,
+      },
+      setXY: {
+        x: 240,
+        y: 280,
+      },
+      spanish: "casa",
+    },
+    {
+      key: "car",
+      setScale: {
+        x: 0.8,
+        y: 0.8,
+      },
+      setXY: {
+        x: 400,
+        y: 300,
+      },
+      spanish: "automovil",
+    },
+
+    {
+      key: "tree",
+      setXY: {
+        x: 550,
+        y: 250,
+      },
+      spanish: "arbol",
+    },
+  ];
+};
 
 // load asset files for our game
 gameScene.preload = function () {
@@ -32,85 +77,124 @@ gameScene.create = function () {
   });
 
   //building
-  this.items = this.add.group([
-    {
-      key: "building",
-      setXY: {
-        x: 100,
-        y: 240,
+  this.items = this.add.group(this.words);
+
+  let items = this.items.getChildren();
+
+  for (let i = 0; i < items.length; i++) {
+    let item = items[i];
+    //make an Item Interactive
+    item.setInteractive();
+
+    //create tween - resize tween
+    item.resizeTween = this.tweens.add({
+      targets: item,
+      scaleX: 1.5,
+      scaleY: 1.5,
+      duration: 300,
+      paused: true, //gives control on when tween will begin
+      yoyo: true, //return to original size
+      ease: "Quad.easeInOut",
+    });
+
+    //Transparency Tween when hovering
+    item.alphaTween = this.tweens.add({
+      targets: item,
+      alpha: 0.7,
+      duration: 200,
+      paused: true, //gives control on when tween will begin
+      yoyo: true, //return to original size
+    });
+
+    //tween for correct
+    item.correctTween = this.tweens.add({
+      targets: item,
+      scaleX: 1.5,
+      scaleY: 1.5,
+      duration: 300,
+      paused: true, //gives control on when tween will begin
+      yoyo: true, //return to original size
+      ease: "Quad.easeInOut",
+    });
+
+    //tween for wrong
+    item.wrongTween = this.tweens.add({
+      targets: item,
+      scaleX: 1.5,
+      scaleY: 1.5,
+      duration: 300,
+      angle: 90,
+      paused: true, //gives control on when tween will begin
+      yoyo: true, //return to original size
+      ease: "Quad.easeInOut",
+    });
+
+    //listen to the pointerdown event
+    item.on(
+      "pointerdown",
+      function (pointer) {
+        let result = this.processAnswer(this.words[i].spanish);
+        if (result) {
+          item.correctTween.restart();
+        } else {
+          item.wrongTween.restart();
+        }
+        //show next question
+        this.showNextQuestion();
       },
-    },
-    {
-      key: "house",
-      setScale: {
-        x: 0.8,
-        y: 0.8,
-      },
-      setXY: {
-        x: 240,
-        y: 280,
-      },
-    },
-    {
-      key: "car",
-      setScale: {
-        x: 0.8,
-        y: 0.8,
-      },
-      setXY: {
-        x: 400,
-        y: 300,
-      },
-    },
+      this
+    );
 
-    {
-      key: "tree",
-      setXY: {
-        x: 550,
-        y: 250,
-      },
-    },
-  ]);
+    // listen to pointerover event to let user know clicking should happen
 
-  Phaser.Actions.Call(
-    this.items.getChildren(),
-    function (item) {
-      //make an Item Interactive
-      item.setInteractive();
+    item.on("pointerover", function (pointer) {
+      item.alphaTween.restart();
+    });
+    //create a sound for each word
+    this.words[i].sound = this.sound.add(this.words[i].key + "Audio");
+  }
 
-      //create tween - resize tween
-      item.resizeTween = this.tweens.add({
-        targets: item,
-        scaleX: 1.5,
-        scaleY: 1.5,
-        duration: 300,
-        paused: true, //gives control on when tween will begin
-        yoyo: true, //return to original size
-        ease: "Quad.easeInOut",
-      });
+  //text object
+  this.wordText = this.add.text(30, 20, "", {
+    font: "40px Open Sans",
+    fill: "black",
+  });
 
-      //Transparency Tween when hovering
-      item.alphaTween = this.tweens.add({
-        targets: item,
-        alpha: 0.7,
-        duration: 200,
-        paused: true, //gives control on when tween will begin
-        yoyo: true, //return to original size
-      });
+  //correct/ wrong sounds
+  this.correctSound = this.sound.add("correct");
+  this.wrongSound = this.sound.add("wrong");
 
-      //listen to the pointerdown event
-      item.on("pointerdown", function (pointer) {
-        item.resizeTween.restart();
-      });
+  //show the first question
+  this.showNextQuestion();
+};
 
-      // listen to pointerover event to let user know clicking should happen
+//show new question
+gameScene.showNextQuestion = function () {
+  //select a random word
+  this.nextWord = Phaser.Math.RND.pick(this.words);
 
-      item.on("pointerover", function (pointer) {
-        item.alphaTween.restart();
-      });
-    },
-    this
-  );
+  //play a sound for that word in spanish
+
+  this.nextWord.sound.play();
+  //show the text of the word in spanish
+  this.wordText.setText(this.nextWord.spanish);
+};
+
+//check answer
+gameScene.processAnswer = function (userResponse) {
+  if (userResponse == this.nextWord.spanish) {
+    //it's correct
+
+    //play sound
+    this.correctSound.play();
+    return true;
+  } else {
+    // it's wrong
+
+    //play sound
+    this.wrongSound.play();
+    return false;
+  }
 };
 
 // our game's configuration
